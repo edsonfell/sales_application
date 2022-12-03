@@ -21,20 +21,28 @@ public class SalesApplication {
             customersRepository.save(new Customer("Edson-Teste-Edson"));
             customersRepository.save(new Customer("123Testeson"));
 
+            System.out.println("----------GET ALL------------");
             List<Customer> customers = customersRepository.getAll();
             customers.forEach(System.out::println);
 
-            System.out.println("-----------------------");
+            System.out.println("----------UPDATING------------");
 
             Customer testeUpdate = customersRepository.update(new Customer(1, "Edson Fernando"));
             System.out.println(testeUpdate);
 
-            System.out.println("-----------------------");
+            System.out.println("----------SEARCHING BY NAME-------------");
 
 
             customers = customersRepository.searchByName("Teste");
             customers.forEach(System.out::println);
 
+            System.out.println("----------DELETING-------------");
+
+            customersRepository.delete(1);
+            customers = customersRepository.getAll();
+            customers.forEach(System.out::println);
+
+            System.out.println("----------OK-------------");
 
 
         };

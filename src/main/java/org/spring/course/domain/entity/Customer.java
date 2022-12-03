@@ -1,7 +1,15 @@
 package org.spring.course.domain.entity;
 
+import javax.persistence.*;
+
+@Entity
+@Table(name = "TB_CUSTOMERS")
 public class Customer {
+    @Id
+    @Column(name="id")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
+    @Column(name="name", length = 50, nullable = false)
     private String name;
 
     public Customer() {

@@ -5,7 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.Entity;
+import javax.persistence.EntityManager;
+import javax.persistence.TypedQuery;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -13,52 +17,54 @@ import java.util.List;
 @Repository
 public class CustomersRepository {
 
-    private static final String INSERT = "insert into CUSTOMERS (NAME) values (?) ";
-    private static final String SELECT_ALL = "SELECT * FROM CUSTOMERS ";
-    private static final String UPDATE = "update CUSTOMERS set NAME = ? where ID = ? ";
-    private static final String DELETE = "delete from CUSTOMERS where ID = ? ";
-
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    public Customer save(Customer Customer){
-        jdbcTemplate.update( INSERT, Customer.getName());
-        return Customer;
+    @Autowired
+    private EntityManager entityManager;
+
+    @Transactional
+    public Customer save(Customer customer) {
+        entityManager.persist(customer);
+        return customer;
     }
 
-    public Customer update(Customer Customer){
-        jdbcTemplate.update(UPDATE, Customer.getName(), Customer.getId());
-        return Customer;
+    @Transactional
+    public Customer update(Customer customer) {
+        entityManager.merge(customer);
+        return customer;
     }
 
-    public void delete(Customer Customer){
-        delete(Customer.getId());
+    /*
+    In the bellow function we need to check if the entityManager contains
+    the last version (updated version) of the customer before deleting it
+     */
+    @Transactional
+    public void delete(Customer customer) {
+        if(!entityManager.contains(customer)){
+            customer = entityManager.merge(customer);
+        }
+        entityManager.remove(customer);
     }
 
-    public void delete(Integer id){
-        jdbcTemplate.update(DELETE, id);
+    @Transactional
+    public void delete(Integer id) {
+        Customer customer = entityManager.find(Customer.class, id);
+        entityManager.remove(customer);
+    }
+    /*
+    In HQL we use the class name, not the table name.
+     */
+    @Transactional(readOnly = true)
+    public List<Customer> searchByName(String name) {
+        String jpql = " SELECT C FROM Customer C WHERE C.name LIKE :name ";
+        TypedQuery<Customer> query = entityManager.createQuery(jpql, Customer.class);
+        query.setParameter("name", "%" + name + "%");
+        return query.getResultList();
     }
 
-    public List<Customer> searchByName(String name){
-        return jdbcTemplate.query(
-                SELECT_ALL.concat(" where NAME like ? "),
-                new Object[]{"%" + name + "%"},
-                getCustomerMapper());
+    @Transactional(readOnly = true)
+    public List<Customer> getAll() {
+        return entityManager.createQuery("FROM Customer ", Customer.class).getResultList();
     }
-
-    public List<Customer> getAll(){
-        return jdbcTemplate.query(SELECT_ALL, getCustomerMapper());
-    }
-
-    private RowMapper<Customer> getCustomerMapper() {
-        return new RowMapper<Customer>() {
-            @Override
-            public Customer mapRow(ResultSet resultSet, int i) throws SQLException {
-                Integer id = resultSet.getInt("ID");
-                String name = resultSet.getString("NAME");
-                return new Customer(id, name);
-            }
-        };
-    }
-
 }
